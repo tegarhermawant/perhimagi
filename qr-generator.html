@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator Kustom</title>
+    <!-- 1. Memuat Tailwind CSS untuk styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Memuat Library QR Code Styling -->
+    <!-- Ini adalah library yang kuat untuk kustomisasi QR -->
+    <script src="https://unpkg.com/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
+
+    <style>
+        /* Menggunakan font Inter */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Style kustom untuk radio button */
+        .radio-custom:checked + label {
+            background-color: #DC2626; /* red-600 */
+            border-color: #DC2626; /* red-600 */
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen flex items-center justify-center p-4 font-sans">
+
+    <div class="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-lg">
+        <h1 class="text-2xl sm:text-3xl font-bold text-center text-red-600 mb-6">
+            QR Code Generator
+        </h1>
+
+        <!-- Input Teks/URL -->
+        <div class="mb-6">
+            <label for="text-input" class="block text-sm font-medium mb-2 dark:text-gray-300">
+                Masukkan Teks atau URL:
+            </label>
+            <input 
+                type="text" 
+                id="text-input" 
+                value="https://perhimagi.org/" 
+                class="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 transition-all"
+            >
+            <!-- [BARU] Pesan validasi -->
+            <p id="validation-message" class="text-red-500 text-xs mt-2 h-4"></p>
+        </div>
+
+        <!-- Wadah untuk QR Code -->
+        <div class="mb-6 flex justify-center">
+            <div id="canvas-container" class="p-4 bg-white rounded-lg shadow-inner inline-block">
+                <!-- QR Code akan dirender di sini oleh JS -->
+            </div>
+        </div>
+
+        <!-- [BARU DITAMBAHKAN] Opsi Latar Belakang -->
+        <div class="mb-6">
+            <label class="block text-sm font-medium mb-3 dark:text-gray-300">
+                Opsi Latar Belakang Unduhan:
+            </label>
+            <div class="flex gap-4">
+                <!-- Opsi 1: Transparan -->
+                <div>
+                    <input 
+                        type="radio" 
+                        id="bg-transparent" 
+                        name="bg-option" 
+                        value="transparent" 
+                        class="radio-custom hidden"
+                    >
+                    <label 
+                        for="bg-transparent" 
+                        class="block cursor-pointer px-5 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-center transition-all"
+                    >
+                        Transparan
+                    </label>
+                </div>
+                <!-- Opsi 2: Putih -->
+                <div>
+                    <input 
+                        type="radio" 
+                        id="bg-white" 
+                        name="bg-option" 
+                        value="white" 
+                        class="radio-custom hidden"
+                    >
+                    <label 
+                        for="bg-white" 
+                        class="block cursor-pointer px-5 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-center transition-all"
+                    >
+                        Putih
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- [BARU] Persetujuan Unduh -->
+        <div class="mb-6 flex items-start sm:items-center gap-3">
+            <input 
+                type="checkbox" 
+                id="tos-check"
+                class="h-5 w-5 mt-0.5 sm:mt-0 rounded border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-red-600 focus:ring-red-500 shrink-0"
+            >
+            <label for="tos-check" class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                Link yang ada pada QR tersebut digunakan untuk tujuan kesejahteraan perhimagi tanpa melanggar aturan perhimagi
+            </label>
+        </div>
+
+        <!-- Tombol Download -->
+        <button id="download-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50
+            <!-- [BARU] Style untuk state disabled -->
+            disabled:bg-gray-400 disabled:dark:bg-gray-600 disabled:shadow-none disabled:transform-none disabled:cursor-not-allowed"
+        >
+            Unduh QR Code (.png)
+        </button>
+
+        <!-- [BARU] Footer -->
+        <p class="text-xs text-gray-400 dark:text-gray-500 text-center mt-6">
+            generator ini powered by: PERHIMAGI
+        </p>
+
+    </div>
+
+    <script>
+        window.addEventListener('load', () => {
+            
+            // =================================================================
+            // ... (Komentar Logo CORS tetap sama) ...
+            // =================================================================
+            // ...
+            // const logoURL = 'https://perhimagi.org/wp-content/uploads/2021/11/Logo-Perhimagi.png';
+            const logoURL = 'https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/github.svg';
+            // =================================================================
+
+            // [BARU] Ambil elemen-elemen baru
+            const textInput = document.getElementById('text-input');
+            const downloadBtn = document.getElementById('download-btn'); // <-- Deklarasi PERTAMA (Benar)
+            const tosCheck = document.getElementById('tos-check');
+            const validationMessage = document.getElementById('validation-message');
+            
+            // [BARU] Regex untuk validasi URL
+            const urlRegex = /^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/[^\s]*)?$/;
+
+            // Opsi awal untuk QR Code
+            const qrCodeOptions = {
+                width: 300,
+                height: 300,
+                data: "https://perhimagi.org/", // Data default
+                image: logoURL, // URL Logo <-- DIKEMBALIKAN
+                dotsOptions: {
+                    color: "#DC2626", // Warna merah (Tailwind Red-600)
+                    type: "rounded"
+                },
+                backgroundOptions: {
+                    color: "transparent", // Default transparan
+                },
+                // imageOptions DIKEMBALIKAN
+                imageOptions: {
+                    crossOrigin: "anonymous", // Wajib untuk memuat gambar eksternal
+                    imageSize: 0.3, // Ukuran logo (30% dari QR)
+                    margin: 8      // Margin di sekitar logo (ini kuncinya!)
+                },
+                cornersSquareOptions: {
+                    color: "#DC2626", // Merah
+                    type: "extra-rounded"
+                },
+                cornersDotOptions: {
+                    color: "#DC2626", // Merah
+                },
+                qrOptions: {
+                    // Error Correction 'H' (High) dikembalikan karena ada logo
+                    errorCorrectionLevel: 'H'
+                }
+            };
+
+            // 1. Buat instance QR Code
+            const qrCode = new QRCodeStyling(qrCodeOptions);
+
+            // 2. Tampilkan QR Code di halaman
+            qrCode.append(document.getElementById('canvas-container'));
+
+
+            // [BARU] Fungsi untuk mengontrol status tombol download
+            function updateDownloadButtonState() {
+                // Cek apakah link valid
+                const isLinkValid = urlRegex.test(textInput.value);
+                // Cek apakah checkbox dicentang
+                const isTosChecked = tosCheck.checked;
+
+                if (isLinkValid && isTosChecked) {
+                    downloadBtn.disabled = false;
+                } else {
+                    downloadBtn.disabled = true;
+                }
+
+                // Tampilkan/sembunyikan pesan validasi
+                if (isLinkValid) {
+                    validationMessage.textContent = "";
+                    textInput.classList.remove('border-red-500', 'dark:border-red-500');
+                    textInput.classList.add('border-gray-300', 'dark:border-gray-600');
+                } else {
+                    // Hanya tampilkan error jika input tidak kosong
+                    if (textInput.value.trim() !== "") {
+                        validationMessage.textContent = "Format URL/link tidak valid.";
+                        textInput.classList.add('border-red-500', 'dark:border-red-500');
+                        textInput.classList.remove('border-gray-300', 'dark:border-gray-600');
+                    } else {
+                         validationMessage.textContent = ""; // Kosongkan jika inputnya kosong
+                         textInput.classList.remove('border-red-500', 'dark:border-red-500');
+                         textInput.classList.add('border-gray-300', 'dark:border-gray-600');
+                    }
+                }
+            }
+
+
+            // 3. Hubungkan ke input teks (Otomatis)
+            // [MODIFIKASI]
+            textInput.addEventListener('input', (e) => {
+                let data = e.target.value;
+                // Jangan gunakan string kosong, bisa error. 
+                // Gunakan spasi jika kosong.
+                if (data.trim() === "") {
+                    data = " "; 
+                }
+                
+                qrCode.update({
+                    data: data
+                });
+                
+                // Cek status tombol setiap kali input berubah
+                updateDownloadButtonState();
+            });
+
+            // 4. Hubungkan ke pilihan Latar Belakang
+            const radioButtons = document.querySelectorAll('input[name="bg-option"]');
+            radioButtons.forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    const newBgColor = (e.target.value === 'white') ? '#ffffff' : 'transparent';
+                    qrCode.update({
+                        backgroundOptions: {
+                            color: newBgColor
+                        }
+                    });
+                    
+                    // Update style container di halaman juga
+                    const container = document.getElementById('canvas-container');
+                    container.style.backgroundColor = (e.target.value === 'white') ? '#ffffff' : 'transparent';
+                });
+            });
+            
+            // Inisialisasi tampilan radio
+            document.getElementById('bg-transparent').checked = true;
+            document.getElementById('canvas-container').style.backgroundColor = 'transparent';
+
+            // [BARU] Hubungkan ke Checkbox
+            tosCheck.addEventListener('change', updateDownloadButtonState);
+
+            // 5. Hubungkan ke tombol Download
+            // const downloadBtn = document.getElementById('download-btn'); <-- [FIX] Deklarasi KEDUA (Duplikat) dihapus.
+            downloadBtn.addEventListener('click', () => {
+                qrCode.download({
+                    name: "qr-perhimagi",
+                    extension: "png"
+                });
+            });
+
+            // [BARU] Panggil fungsi saat load untuk mengatur state awal tombol
+            updateDownloadButtonState();
+
+        });
+    </script>
+</body>
+</html>
