@@ -22,6 +22,13 @@
             border-color: #DC2626; /* red-600 */
             color: white;
         }
+        
+        /* [BARU] Atur ukuran *tampilan* canvas agar tidak merusak layout */
+        /* Ini akan mengecilkan kanvas 1000px menjadi 300px di layar */
+        #canvas-container canvas {
+            width: 300px !important;
+            height: 300px !important;
+        }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen flex items-center justify-center p-4 font-sans">
@@ -143,10 +150,10 @@
 
             // Opsi awal untuk QR Code
             const qrCodeOptions = {
-                width: 300,
-                height: 300,
+                width: 1000, // <-- Diubah untuk download resolusi tinggi
+                height: 1000, // <-- Diubah untuk download resolusi tinggi
                 data: "https://perhimagi.org/", // Data default
-                image: logoURL, // URL Logo <-- DIKEMBALIKAN
+                image: logoURL, // URL Logo 
                 dotsOptions: {
                     color: "#DC2626", // Warna merah (Tailwind Red-600)
                     type: "rounded"
@@ -271,7 +278,3 @@
     </script>
 </body>
 </html>
-
-
-
-
